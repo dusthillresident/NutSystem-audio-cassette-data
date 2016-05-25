@@ -1,0 +1,231 @@
+pcmout%=OPENOUT("miscfiles/PCMout.raw")
+DIM partlengths%(2): DIM partvols%(2): DIM compensatevols%(2)
+partlengths%(1)=7: partlengths%(2)=7
+partvols%(1)=6: partvols%(2)=87: compensatevols%(1)=1: compensatevols%(2)=97: prevpart%=2: curr_pos%=128
+DIM bits%(8)
+DATA 1,1,2,2,1,2,2,1
+DIM fsize%(3): DIM fconv%(6): debugout%=TRUE
+filein%=OPENIN("miscfiles/encoder_input")
+IF debugout%=TRUE THEN outcheck%=OPENOUT("miscfiles/encoder_check_output")
+filename$="default"
+INPUT "Enter file description: " filename$
+PRINT "Encoding..."
+
+REM ################# Writing output, main part ##################
+REMPROCrecb
+PROCWriteSilence(77717):
+PROCPolaritySpike
+PROCSendStartSignal
+PROCGetAndSendChecksum
+PROCSendFileName
+PROCGetAndSendFileSize
+
+
+REPEAT
+
+ REM ####
+ REM Get byte from input file, put it into variable in%
+ in%=BGET#filein%
+ REM ####
+
+ PROCConvertToBin
+
+ FOR i%=1 TO 8
+
+  REM ### these things go here: ###
+  IF debugout%=TRUE THEN BPUT#outcheck%,(bits%(i%)+1)
+  PROCDrawPart(bits%(i%)+1,1)
+  REM write bits%(i%) to output file
+  REM and PROCdrawbeeporwhatever(bits%(i%)+1)
+
+ NEXT
+
+UNTIL EOF#filein%
+
+REM ################# Writing output, end part ###################
+
+PROCDrawPart(2,111)
+PROCWriteSilence(42111)
+
+CLOSE#pcmout%
+CLOSE#filein%: IF debugout%=TRUE THEN CLOSE#outcheck%
+END
+REM ##################### Output end #############################
+
+DEFPROCDrawPart(type%,dpcount%)
+ FOR cloop%=1 TO dpcount%
+  IF prevpart%=type% THEN
+   target_a%=255-partvols%(type%)
+   target_b%=0+partvols%(type%)
+  ELSE
+   target_a%=255-compensatevols%(type%)
+   target_b%=0+compensatevols%(type%)
+  ENDIF
+
+  diff%=target_a%-curr_pos%
+  step%=diff% DIV (partlengths%(type%)-1)
+
+  FOR loop%=1 TO partlengths%(type%)-2
+   BPUT#pcmout%,curr_pos%+(step%*loop%)
+  NEXT loop%
+
+  BPUT#pcmout%,target_a%: BPUT#pcmout%,target_a%
+  curr_pos%=target_a%
+
+  diff%=target_b%-curr_pos%
+  step%=diff% DIV (partlengths%(type%)-1)
+
+  FOR loop%=1 TO partlengths%(type%)-2
+   BPUT#pcmout%,curr_pos%+(step%*loop%)
+  NEXT loop%
+
+  BPUT#pcmout%,target_b%: BPUT#pcmout%,target_b%
+  curr_pos%=target_b%
+
+  prevpart%=type%
+ NEXT cloop%
+ENDPROC
+
+DEFPROCWriteSilence(count%)
+
+ FOR z%=1 TO count%
+
+  BPUT#pcmout%,128
+
+ NEXT
+
+ENDPROC
+
+DEFPROCConvertToBin
+
+  FOR i%=8 TO 1 STEP -1
+   bits%(i%)=in% MOD 2
+   in%=in% DIV 2
+  NEXT
+
+ENDPROC
+
+DEFPROCSendStartSignal
+ PROCDrawPart(1,2611)
+ FOR loopx%=1 TO 26
+  PROCDrawPart(1,1)
+ NEXT
+ FOR loopy%=1 TO 7
+  PROCDrawPart(2,1)
+ NEXT
+ FOR loopx%=1 TO 8
+  READ ssignalcheck%
+  PROCDrawPart(ssignalcheck%,1)
+ NEXT
+ENDPROC
+
+DEFPROCGetAndSendFileSize
+ filesize%=EXT#filein%
+
+ tempa%=filesize%
+ FOR i%=6 TO 1 STEP -1
+  fconv%(i%)=tempa% MOD 16
+  tempa%=tempa% DIV 16
+ NEXT
+
+ fsize%(1)+=(fconv%(1)*16)+fconv%(2)
+ fsize%(2)+=(fconv%(3)*16)+fconv%(4)
+ fsize%(3)+=(fconv%(5)*16)+fconv%(6)
+
+ FOR fsx%=1 TO 3
+
+ in%=fsize%(fsx%)
+ PROCConvertToBin
+
+  FOR fsy%=1 TO 8
+   PROCDrawPart(bits%(fsy%)+1,1)
+  NEXT fsy%
+
+ NEXT fsx%
+
+ENDPROC
+
+DEFPROCrecb
+ PROCWriteSilence(41001): PROCDrawPart(1,222): PROCDrawPart(2,1): 
+ENDPROC
+
+DEFPROCSendFileName
+ 
+ in%=LENfilename$: filename_len%=in%
+ PROCConvertToBin
+
+ FOR i%=1 TO 8
+
+  PROCDrawPart(bits%(i%)+1,1)
+
+ NEXT
+
+ FOR fnameloopa%=1 TO filename_len%
+
+   in%=ASC(MID$(filename$,fnameloopa%,1))
+   PROCConvertToBin
+
+   FOR fnameloopc%=1 TO 8
+    PROCDrawPart(bits%(fnameloopc%)+1,1)
+   NEXT fnameloopc%
+
+ NEXT fnameloopa%
+
+ENDPROC
+
+DEFPROCGetAndSendChecksum
+ PTR#filein%=0
+ chksum_a%=0: chksum_b%=0
+
+ REPEAT
+  bval%=BGET#filein%
+  chksum_a%+=bval%
+  chksum_b%+=(bval%+chksum_a%)
+  IF chksum_a%>100000 THEN chksum_a%-=90000
+  IF chksum_b%>100000 THEN chksum_b%-=90000
+ UNTIL EOF#filein%
+
+ REPEAT
+  IF chksum_a%>255 THEN chksum_a%-=116
+ UNTIL chksum_a%<256
+ REPEAT
+  IF chksum_a%<0 THEN chksum_a%+=116
+ UNTIL chksum_a%>-1
+
+ REPEAT
+  IF chksum_b%>255 THEN chksum_b%-=116
+ UNTIL chksum_b%<256
+ REPEAT
+  IF chksum_b%<0 THEN chksum_b%+=116
+ UNTIL chksum_b%>-1
+
+ in%=chksum_a%
+ PROCConvertToBin
+ FOR csl%=1 TO 8
+  PROCDrawPart(bits%(csl%)+1,1)
+ NEXT
+
+ in%=chksum_b%
+ PROCConvertToBin
+ FOR csl%=1 TO 8
+  PROCDrawPart(bits%(csl%)+1,1)
+ NEXT
+
+ REM PRINT chksum_a%
+ REM PRINT chksum_b% 
+
+ PTR#filein%=0
+ENDPROC
+
+DEFPROCPolaritySpike
+LOCAL z%
+ FOR z%=1 TO 7
+  BPUT#pcmout%,255
+ NEXT
+ FOR z%=1 TO 7
+  BPUT#pcmout%,0
+ NEXT
+ curr_pos%=0
+ENDPROC
+
+

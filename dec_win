@@ -1,0 +1,352 @@
+REM ######### open files and set some variables ######
+DRAW 1,1: CLS
+ON ERROR PROCError
+
+dsp%=OPENIN("/tmp/readdata")
+fileout%=OPENOUT("miscfiles/recovered_file")
+
+noise_hi%=128: noise_lo%=128
+DIM beeplengths%(2): DIM bits%(8): sample%=128: oldsample%=128: bitcounter%=0: filesize%=0: bytecounter%=0: sampcounter%=0
+powerlimit%=100: chksum_a%=0: chksum_b%=0: checksumfailed%=FALSE: startok%=6: started%=FALSE: invert%=FALSE: progresscheck%=0: av%=127: avb%=64
+
+DATA 1,1,2,2,1,2,2,1,1
+
+REM ############# Set this variable to TRUE if you need to process signed 16bit raw audio ######
+ converts16%=FALSE
+REM ############################################################################################
+
+REM ###### debugging stuff ###########################
+
+REM # do not change these #
+ex%=0: gt%=0: erlen%=0: erbit%=0: erbyte%=0
+stop%=FALSE: fail%=FALSE
+REM #######################
+
+debug%=FALSE: record%=FALSE: docheck%=FALSE
+
+IF debug%=TRUE THEN debuga%=OPENOUT("miscfiles/debuga.raw")
+IF record%=TRUE THEN recordout%=OPENOUT("miscfiles/record.raw")
+IF docheck%=TRUE THEN checkin%=OPENIN("miscfiles/encoder_check_output")
+REM ##################################################
+
+IF docheck%=FALSE THEN COLOUR 3: PRINT "Debug mode is disabled": COLOUR 7
+REM ##################################################
+PRINT "Start" 
+PRINT "Waiting for start signal"
+
+PROCSetPolarity
+PROCReadStartSignal
+IF startok%=TRUE THEN
+ PROCReadChecksum
+ PROCReadFilename
+ PROCReadFileLength
+ started%=TRUE
+ REPEAT
+  PROCReadByte
+  PROCConvertFromBin
+  PROCChecksumProcess
+  PROCWriteByte
+  PROCProgressReport
+ UNTIL stop%=TRUE OR fail%=TRUE
+ENDIF
+IF startok%=TRUE THEN VDU 11
+PRINT "End                               "
+REM ##################################################
+IF fail%=TRUE AND docheck%=TRUE THEN
+ COLOUR 1: PRINT "FAILURE": COLOUR 7
+ PRINT "Expected ";ex%;", got ";gt%
+ PRINT "Beeplengths" beeplengths%(1) beeplengths%(2)
+ PRINT "length% was ";erlen%;"    Bitcounter: "; erbit%; "    Bytecounter: ";erbyte%   
+ELSE
+ IF docheck%=TRUE AND startok%=TRUE THEN COLOUR 2: PRINT "Success": COLOUR 7
+ENDIF
+IF record%=TRUE THEN FOR recz%=1 TO 11111: PROCReadSample: NEXT
+CLOSE#dsp%: CLOSE#fileout%: IF docheck%=TRUE THEN CLOSE#checkin%
+IF debug%=TRUE THEN CLOSE#debuga%
+IF record%=TRUE THEN CLOSE#recordout%
+IF startok%=TRUE THEN PROCChecksumResult
+REM ##################################### Some misc stuff goes in here ################################
+PRINT "powerlimit" powerlimit%
+REM PRINT "pwrlim_div" pwrlim_div
+PRINT "nutpowers" beeplengths%(1) beeplengths%(2)
+
+IF checksumfailed%=TRUE OR fail%=TRUE THEN INPUT "Press enter to exit" null%
+
+REM ####################################################################################################
+END
+
+DEFPROCReadSample
+ oldsample%=sample%
+ IF converts16%=FALSE THEN
+  sample%=BGET#dsp%
+ ELSE
+  null%=BGET#dsp%
+  sample%=BGET#dsp%
+  IF sample%<128 THEN
+   sample%+=128
+  ELSE
+   sample%-=128
+  ENDIF
+ ENDIF
+ IF record%=TRUE THEN BPUT#recordout%,sample%
+ IF invert%=TRUE THEN sample%=255-sample%
+ IF debug%=TRUE THEN BPUT#debuga%,sample%
+ENDPROC
+
+REM ######################################
+DEFPROCReadBeep 
+ bitcounter%+=1
+ 
+ REM Look for high point##########################
+ sxc%=0: pe%=0
+ REPEAT
+ PROCReadSample 
+ IF sample%>oldsample% THEN
+  IF sxc%>0 THEN sxc%-=1
+ ELSE
+  sxc%+=1
+ ENDIF
+ IF sample%>pe% THEN pe%=sample%
+ UNTIL sxc%=3
+ IF debug%=TRUE THEN BPUT#debuga%,0
+ REM #############################################
+ hi%=pe%
+
+ REM Look for low point #########################
+ sxc%=0: pe%=255
+ REPEAT
+ PROCReadSample
+ IF sample%<oldsample% THEN
+  IF sxc%>0 THEN sxc%-=1
+ ELSE
+  sxc%+=1
+ ENDIF
+ IF sample%<pe% THEN pe%=sample%
+ UNTIL sxc%=3
+ IF debug%=TRUE THEN BPUT#debuga%,0
+ REM #############################################
+ lo%=pe%
+
+ length%=hi%-lo%
+ IF startok%=TRUE THEN
+  powerlimit%=av%-avb%: powerlimit%=INT(powerlimit%/pwrlim_div): powerlimit%+=avb%
+ ENDIF
+
+ENDPROC
+REM end of ReadBeep ###################################
+
+DEFPROCReadStartSignal
+
+ FOR ssfix%=1 TO 2600
+  PROCReadBeep: PROCConvertLengthToType: IF ssfix%=2 THEN PRINT "Receiving start signal"
+  IF ssfix%=1400 THEN beeplengths%(1)=length%
+  IF ssfix%>1401 THEN
+   beeplengths%(1)+=length%
+   beeplengths%(1)=beeplengths%(1) DIV 2
+  ENDIF
+ NEXT ssfix%
+ powerlimit%=(beeplengths%(1) DIV 2)+10
+ 
+ FOR loopa%=1 TO 7
+  PROCReadBeep
+  IF loopa%=1 THEN beeplengths%(1)=length%
+  beeplengths%(1)+=length%
+  beeplengths%(1)=beeplengths%(1) DIV 2
+ NEXT loopa%
+ beeplengths%(2)=beeplengths%(1) DIV 2
+ REPEAT
+ PROCReadBeep: PROCConvertLengthToType
+ UNTIL in%=2
+
+ FOR loopb%=1 TO 6
+  PROCReadBeep:
+  IF loopb%=1 THEN beeplengths%(2)=length%
+  beeplengths%(2)+=length%: beeplengths%(2)=beeplengths%(2) DIV 2
+ NEXT loopb%
+ 
+ pwrlim_div=3.4
+ powerlimit%=beeplengths%(1)-beeplengths%(2): powerlimit%=INT(powerlimit%/pwrlim_div): powerlimit%+=beeplengths%(2)
+
+ FOR loopa%=1 TO 8
+  PROCReadBeep: PROCConvertLengthToType: READ ssignalcheck%
+  IF startok%=6 AND in%<>ssignalcheck% THEN startok%=FALSE
+ NEXT loopa%
+
+ IF startok%=6 THEN
+  startok%=TRUE: PRINT "Start signal received"
+ ELSE
+  PRINT "Start signal error"
+  fail%=TRUE
+ ENDIF
+
+ENDPROC
+
+
+DEFPROCConvertLengthToType
+ IF length%>=powerlimit% THEN
+  in%=1
+
+  av%+=length%: av%=av% DIV 2
+
+ ELSE
+  in%=2
+
+  avb%+=length%: avb%=avb% DIV 2
+
+ ENDIF
+ENDPROC
+
+DEFPROCErrorCheck
+
+  IF docheck%=TRUE AND fail%=FALSE THEN
+   cin%=BGET#checkin%
+   IF in%<>cin% THEN fail%=TRUE
+   ex%=cin%: gt%=in%: erlen%=length%: erbit%=bitcounter%: erbyte%=bytecounter%
+  ENDIF
+
+ENDPROC
+
+DEFPROCReadByte
+ bytecounter%+=1
+ IF started%=TRUE AND bytecounter%=filesize% THEN stop%=TRUE
+
+ FOR readbyte%=1 TO 8
+  REM ###
+  REM beep detecting and recognising method here, beep type is put into variable in%, a value from 1 to 2
+  PROCReadBeep: PROCConvertLengthToType: IF started%=TRUE THEN PROCErrorCheck
+  REM ###
+
+  in%-=1
+  bits%(readbyte%)=in%
+  
+ NEXT readbyte%
+ENDPROC
+
+DEFPROCConvertFromBin
+ IF fail%=FALSE
+  bval%=0
+  xval%=128
+  FOR i%=1 TO 8
+   IF bits%(i%)>0 THEN bval%+=xval%
+   xval%=xval% DIV 2
+  NEXT
+ ENDIF
+ENDPROC
+
+DEFPROCWriteByte
+  BPUT#fileout%,bval%
+ENDPROC
+
+DEFPROCReadFileLength
+ COLOUR 6: PRINT "File size: ";
+ filesize%=0
+ FOR flloop%=3 TO 1 STEP -1
+ PROCReadByte: PROCConvertFromBin: filesize%+=bval%*(256^(flloop%-1))
+ NEXT
+ PRINT ;filesize%;" bytes": COLOUR 7
+ bitcounter%=0: bytecounter%=0
+
+ENDPROC
+
+
+DEFPROCReadFilename
+ PROCReadByte: PROCConvertFromBin
+ filename_length%=bval%
+ COLOUR 6: PRINT "File description: ";
+ FOR fnameloopa%=1 TO filename_length%
+  PROCReadByte: PROCConvertFromBin
+
+   PRINT ;CHR$(bval%);
+
+ NEXT
+ PRINT " ": COLOUR 7
+ENDPROC
+
+DEFPROCChecksumProcess
+
+ chksum_a%+=bval%
+ chksum_b%+=(bval%+chksum_a%)
+ IF chksum_a%>100000 THEN chksum_a%-=90000
+ IF chksum_b%>100000 THEN chksum_b%-=90000
+
+ENDPROC
+
+DEFPROCChecksumResult
+
+ REPEAT
+  IF chksum_a%>255 THEN chksum_a%-=116
+ UNTIL chksum_a%<256
+ REPEAT
+  IF chksum_a%<0 THEN chksum_a%+=116
+ UNTIL chksum_a%>-1
+
+ REPEAT
+  IF chksum_b%>255 THEN chksum_b%-=116
+ UNTIL chksum_b%<256
+ REPEAT
+  IF chksum_b%<0 THEN chksum_b%+=116
+ UNTIL chksum_b%>-1
+
+ IF chksum_a%<>chksum_a_% OR chksum_b%<>chksum_b_% THEN
+  COLOUR 1: PRINT "Checksum fail": COLOUR 7: checksumfailed%=TRUE
+ ELSE
+  COLOUR 2: PRINT "Checksum OK": COLOUR 7
+ ENDIF
+
+ENDPROC
+
+DEFPROCReadChecksum
+
+ PROCReadByte: PROCConvertFromBin: chksum_a_%=bval%
+ PROCReadByte: PROCConvertFromBin: chksum_b_%=bval%
+
+ENDPROC
+
+DEFPROCProgressReport
+ IF progresscheck%=0 THEN progresscheck%=bytecounter%: PRINT "Reading data..."
+ IF (progresscheck%+2000)<bytecounter% THEN
+  progresscheck%=bytecounter%
+  VDU 11
+  PRINT bytecounter%;" bytes read"
+ ENDIF
+ENDPROC
+
+DEFPROCError
+ 
+ COLOUR 1
+ PRINT "FAILURE";
+ COLOUR 7
+ PRINT " - error (probably EOF)"
+ IF started%=TRUE THEN PROCChecksumResult
+ CLOSE#dsp%
+ CLOSE#fileout% 
+ IF docheck%=TRUE THEN CLOSE#checkin%
+ IF debug%=TRUE THEN CLOSE#debuga%
+ IF record%=TRUE THEN CLOSE#recordout%
+ INPUT "Press enter to exit" null%
+ END
+
+ENDPROC
+
+DEFPROCSetPolarity
+
+  FOR noisecheck%=1 TO 4: 
+   null%=BGET#dsp%
+  NEXT
+  FOR noisecheck%=1 TO 77661
+   PROCReadSample
+   IF sample%>noise_hi% THEN noise_hi%=sample%
+   IF sample%<noise_lo% THEN noise_lo%=sample%
+  NEXT
+  noise_hi%+=8: noise_lo%-=8
+  REPEAT
+   PROCReadSample
+   IF sample%>noise_hi% THEN invert%=FALSE
+   IF sample%<noise_lo% THEN invert%=TRUE
+  UNTIL sample%>noise_hi% OR sample%<noise_lo%
+
+  COLOR 15: PRINT "Polarity detection: ";: IF invert%=TRUE PRINT ;"inverted" ELSE PRINT ;"normal"
+  COLOR 7
+  REM PRINT "invert: ";invert%; "; noise area limits, hi lo: " noise_hi%"  "noise_lo%
+
+ENDPROC

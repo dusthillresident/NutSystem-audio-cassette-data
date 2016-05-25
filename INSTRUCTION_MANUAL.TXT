@@ -1,0 +1,74 @@
+           Nutsystem 
+	Wed 25 May 2016
+
+
+ == INSTRUCTION MANUAL ==
+NutSystem is a collection of BASIC programs and scripts that can turn data into sound, and can be used to store data on compact audio cassettes.
+
+I tried to make NutSystem as straightforward to use as possible, but you still need to know what you're doing to be able to use it. In this text file I aim to tell you what you need to know.
+
+
+ == 1) REQUIREMENTS ==
+ At this time, NutSystem only supports Linux. 
+ You must have the Brandy BASIC V interpreter installed on your system. 
+ You must have alsa-utils installed. (for the arecord command, which NutSystem uses)
+ You must have a sound device which supports recording unsigned 8bit little endian PCM, or signed 16bit PCM. If you don't, you'll need a program that can convert the audio into one of those formats.
+ I highly recommend that you have Audacity, which is useful for converting audio types, and also for checking the volume levels of the sound input/output.
+
+ 
+ == 2) PREPARATION ==
+ Extract the .tar.xz archive containing NutSystem into a folder. Make sure the following files are present:
+ FILE			|	DESCRIPTION
+ -----------------------------------------------------------
+ enc_wo			|	The 'encoder wave-out' program
+ dec_win		|	The 'decoder wave-in' program
+ EncodingScript 	|	Frontend bash script that aims to make use of the 'encoder wave-out' program easy and straightforward
+ DecodingScript 	|	Frontend bash script that aims to make use of the 'decoder wave-in' program easy and straightforward
+ DecodingScript_filter  |       Same as DecodingScript, but it uses the signal_filter 
+ StartingScript 	|	Frontend bash script that allows the 'decoder wave-in' program to read data directly from the sound device input
+ StartingScript_filter	|	Same as StartingScript, but it uses the signal_filter
+ signal_filter		|	Optional signal filter. It can improve reliability if there's high frequency noise on the input signal.
+ (This file)		|	The INSTRUCTION_MANUAL.TXT file
+
+ Also make sure that these folders are present too:
+ FOLDER			|	DESCRIPTION
+ -----------------------------------------------------------
+ miscfiles		|	The enc_wo and dec_win programs' output files are put in here
+ _encoder_output_files	|	The EncodingScript moves the output files from the 'enc_wo' program here and adds datestamps to the filenames
+ _recovered_files       |	The StartingScript moves the output files from the 'dec_win' program here and adds datestamps to the filenames
+ _waveinput_recordings  |	If dec_win's 'record%' variable is set to TRUE, the input data is logged to a file and is moved here. Helpful for diagnosing problems when using StartingScript
+ 
+
+ == 3) ENCODING FILES ==
+ Open a terminal window. cd to the directory containing NutSystem. Then run EncodingScript with one argument, which must be the path to the file you want to include. For example:
+ ./EncodingScript ~/Desktop/file.jpg
+ The Brandy window will appear and will ask you to type a file description. The description should not be longer than 100 characters. Avoid using characters like ",!@"$£", or something bad could happen. 
+ Once the process has finished, the brandy window will disappear and the output file will appear in _encoder_output_files with the time and date in the filename.
+
+ == 4) DECODING FILES == 
+ Open a terminal window. cd to the directory containing NutSystem. Run DecodingScript with two arguments: a path to an input file (which must be raw unsigned 8bit PCM little endian, or signed 16bit PCM little endian but you must set converts16% to TRUE in dec_win), and a path to an output file. Like this:
+ ./DecodingScript _encoder_output_files/example.raw outputfile
+ The Brandy window will appear while the process takes place. If the file is retrieved successfully, the Brandy window will disappear on its own. But if a problem with the file is detected, the window will remain, displaying a message ("Checksum fail") notifying you that there was a problem. 
+
+ == 5) RECORDING A FILE ONTO A CASSETTE TAPE AND RETRIEVING IT ==
+ * Open Audacity. Import a 'PCMout' output file as 'raw data'. Use these settings: Unsigned 8bit PCM, No endianness, 1 Channel (Mono)
+ * Set the volume levels appropriately (read below for help). Connect your computer's sound output to the tape recorder's input.
+ * Start your tape machine recording and press play on audacity. Make sure you don't try to record sound onto the transparent leader tape at the beginning of the cassette.
+ Then to retrieve the data from the tape:
+ * Record the signal from the tape using Audacity, export it as raw Unsigned 8bit PCM, No endianness, 1 Channel (Mono), and use DecodingScript to try to decode it.
+ * IMPORTANT: Make sure there is at least two seconds of tape noise/silence at the beginning of the recording. This is essential as NutSystem uses this to get an idea of the background noise level before it decodes the signal. It's also essential for the polarity detection mechanism to work properly. 
+ * Or you can use StartingScript to try to read from the tape directly, but that can be tricky because you might need to edit the arecord command to work with your sound setup, and maybe your sound hardware doesn't support recording raw mono 8bit PCM. 
+  
+
+ You will probably need to experiment with different output/input volume levels before you find settings that allow you to store and retrieve data on a tape without data corruption. You will of course need a male-to-male audio cable to connect your computer's sound output directly to your tape recorder. Here are some observations from my tests with different tape recorders:
+
+ * If your tape recorder only has a 'mic' input, the output volume should be pretty quiet, perhaps just loud enough to be slightly uncomfortable to listen to when listening to the sound with headphones
+ * If your tape recorder has an 'aux in' and you decide to use that, the output volume needs to be pretty loud
+ * It's generally a good idea to aim for the signal to be as loud as possible WITHOUT ANY CLIPPING OR DISTORTION
+ 
+ Using a cheap and commonly available USB-audio adapter from ebay, I found that these ALSA mixer volume settings were good.
+ For output, when connected to the 'mic' socket on a mono cassette recorder:
+ Master 1, (then in audacity, set gain to -27) 
+ For input:
+ Capture - Mic 55
+ When recording the signal from the tape, make sure it looks fairly big/loud, but let there be a bit of room between the peaks and the edge of the screen, to avoid any danger of clipping/distortion. 

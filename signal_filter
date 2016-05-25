@@ -1,0 +1,50 @@
+dsp%=OPENIN("/tmp/readin")
+out%=OPENOUT("/tmp/readdata")
+
+converts16%=FALSE
+
+ON ERROR CLOSE#dsp%: CLOSE#out%: END
+
+PRINT "A parallel signal filter process is running in this window."
+PRINT "You should minimise this window and pay attention to the other one."
+
+IF converts16%=TRUE THEN PROCFilterB ELSE PROCFilterA
+
+END
+
+DEFPROCFilterA
+ sample_a%=BGET#dsp%
+ sample_b%=BGET#dsp%
+ sample_c%=BGET#dsp%
+
+ REPEAT
+  sample_a%=sample_b%
+  sample_b%=sample_c%
+  sample_c%=BGET#dsp%
+  BPUT#out%,(sample_a%+sample_b%+sample_c%) DIV 3
+ UNTIL FALSE
+ENDPROC
+
+DEFPROCFilterB
+ sample_a%=FNconvS16
+ sample_b%=FNconvS16
+ sample_c%=FNconvS16
+
+ REPEAT
+  sample_a%=sample_b%
+  sample_b%=sample_c%
+  sample_c%=FNconvS16
+  BPUT#out%,(sample_a%+sample_b%+sample_c%) DIV 3
+ UNTIL FALSE
+ENDPROC
+
+DEFFNconvS16
+null%=BGET#dsp%
+s%=BGET#dsp%
+
+ IF s%<128 THEN
+  s%+=128
+ ELSE
+  s%-=128
+ ENDIF
+=s%
