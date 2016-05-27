@@ -9,6 +9,7 @@ filein%=OPENIN("miscfiles/encoder_input")
 IF debugout%=TRUE THEN outcheck%=OPENOUT("miscfiles/encoder_check_output")
 filename$="default"
 INPUT "Enter file description: " filename$
+IF LENfilename$<1 OR LENfilename$>255 THEN filename$="no description"
 PRINT "Encoding..."
 
 REM ################# Writing output, main part ##################
