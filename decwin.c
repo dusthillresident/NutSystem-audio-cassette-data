@@ -9,8 +9,7 @@ static int powerlimit=100;
 static int av_a=110,av_b=40;
 static int chk_a=0,chk_b=0,chk_c=0,chk_d=0;
 static int bits[8];
-static int bls[2];
-static int rubbish_unused=0; /* if this isn't here, bls[2] gets set to 1 when started gets set to 1 at line 28. I don't know if this is a compiler bug or if I'm doing something wrong.*/
+static int bls[3];
 static int started=0;
 
 void main() {
