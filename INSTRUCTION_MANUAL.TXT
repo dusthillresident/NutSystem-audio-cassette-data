@@ -22,11 +22,11 @@ I tried to make NutSystem as straightforward to use as possible, but you still n
  -----------------------------------------------------------
  enc_wo			|	The 'encoder wave-out' program
  dec_win		|	The 'decoder wave-in' program
- EncodingScript 	|	Frontend bash script that aims to make use of the 'encoder wave-out' program easy and straightforward
- DecodingScript 	|	Frontend bash script that aims to make use of the 'decoder wave-in' program easy and straightforward
- DecodingScript_filter  |       Same as DecodingScript, but it uses the signal_filter 
- StartingScript 	|	Frontend bash script that allows the 'decoder wave-in' program to read data directly from the sound device input
- StartingScript_filter	|	Same as StartingScript, but it uses the signal_filter
+ EncodingScript.sh 	|	Frontend bash script that aims to make use of the 'encoder wave-out' program easy and straightforward
+ DecodingScript.sh 	|	Frontend bash script that aims to make use of the 'decoder wave-in' program easy and straightforward
+ DecodingScript_filter.sh|       Same as DecodingScript, but it uses the signal_filter 
+ StartingScript.sh 	|	Frontend bash script that allows the 'decoder wave-in' program to read data directly from the sound device input
+ StartingScript_filter.sh|	Same as StartingScript, but it uses the signal_filter
  signal_filter		|	Optional signal filter. It can improve reliability if there's high frequency noise on the input signal.
  (This file)		|	The INSTRUCTION_MANUAL.TXT file
 
