@@ -51,7 +51,7 @@ I tried to make NutSystem as straightforward to use as possible, but you still n
  The Brandy window will appear while the process takes place. If the file is retrieved successfully, the Brandy window will disappear on its own. But if a problem with the file is detected, the window will remain, displaying a message ("Checksum fail") notifying you that there was a problem. 
 
  == 5) RECORDING A FILE ONTO A CASSETTE TAPE AND RETRIEVING IT ==
- * Open Audacity. Import a 'PCMout' output file as 'raw data'. Use these settings: Unsigned 8bit PCM, No endianness, 1 Channel (Mono)
+ * Open Audacity. Import a 'PCMout' output file as 'raw data'. Use these settings: Unsigned 8bit PCM, No endianness, 1 Channel (Mono), 44100 Hz
  * Set the volume levels appropriately (read below for help). Connect your computer's sound output to the tape recorder's input.
  * Start your tape machine recording and press play on audacity. Make sure you don't try to record sound onto the transparent leader tape at the beginning of the cassette.
  Then to retrieve the data from the tape:
