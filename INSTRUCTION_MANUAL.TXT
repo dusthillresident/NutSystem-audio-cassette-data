@@ -41,13 +41,13 @@ I tried to make NutSystem as straightforward to use as possible, but you still n
 
  == 3) ENCODING FILES ==
  Open a terminal window. cd to the directory containing NutSystem. Then run EncodingScript with one argument, which must be the path to the file you want to include. For example:
- ./EncodingScript ~/Desktop/file.jpg
+ ./EncodingScript.sh ~/Desktop/file.jpg
  The Brandy window will appear and will ask you to type a file description. The description should not be longer than 100 characters. Avoid using characters like ",!@"$£", or something bad could happen. 
  Once the process has finished, the brandy window will disappear and the output file will appear in _encoder_output_files with the time and date in the filename.
 
  == 4) DECODING FILES == 
  Open a terminal window. cd to the directory containing NutSystem. Run DecodingScript with two arguments: a path to an input file (which must be raw unsigned 8bit PCM little endian, or signed 16bit PCM little endian but you must set converts16% to TRUE in dec_win), and a path to an output file. Like this:
- ./DecodingScript _encoder_output_files/example.raw outputfile
+ ./DecodingScript.sh _encoder_output_files/example.raw outputfile
  The Brandy window will appear while the process takes place. If the file is retrieved successfully, the Brandy window will disappear on its own. But if a problem with the file is detected, the window will remain, displaying a message ("Checksum fail") notifying you that there was a problem. 
 
  == 5) RECORDING A FILE ONTO A CASSETTE TAPE AND RETRIEVING IT ==
