@@ -1,0 +1,27 @@
+==== QUICK GUIDE FOR ENCODING ====
+
+* Download NutSystem and extract to a folder.
+* Open terminal, cd to the folder, then do this:
+   chmod +x *.sh
+  to make the scripts executable
+* Then do this:
+  ./EncodingScript.sh /path/to/input/file.ext
+* Look inside the _encoder_output_files directory to find the output file
+* Import the output file into Audacity (or some other audio editor) as Raw Audio with these settings:
+  Unsigned 8bit PCM
+  Little Endian (or No Endianness)
+  1 Channel (Mono)
+  44100 Hz
+* Record on cassette tape or whatever
+
+==== QUICK GUIDE FOR DECODING ====
+
+* Record the signal back in from the cassette tape, or whatever
+* Make sure there's at least two seconds of tape noise/blank tape recording at the start of the recording, and no loud transients/clicks/pops, otherwise you will probably get 'start signal error'
+* Export as raw unsigned 8bit PCM 
+* Do this:
+  ./DecodingScript.sh [path to input.raw] [path to output file]
+  Beware that the specified output file, if it exists, will be overwritten without asking. 
+
+
+ 
