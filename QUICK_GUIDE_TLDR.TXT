@@ -26,6 +26,7 @@
 ==== REQUIREMENTS ====
 
 * Brandy Basic V interpreter
+* X window system (unfortunately, Brandy requires X)
 * ALSA ('arecord' is command used by 'startingscript.sh'
 
 
