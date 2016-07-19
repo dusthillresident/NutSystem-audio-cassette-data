@@ -22,6 +22,12 @@
 * Do this:
   ./DecodingScript.sh [path to input.raw] [path to output file]
   Beware that the specified output file, if it exists, will be overwritten without asking. 
+  
+==== REQUIREMENTS ====
+
+* Brandy Basic V interpreter
+* ALSA ('arecord' is command used by 'startingscript.sh'
+
 
 
  
