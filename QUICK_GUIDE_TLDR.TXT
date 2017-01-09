@@ -27,7 +27,7 @@
 
 * Brandy Basic V interpreter
 * X window system (unfortunately, Brandy requires X)
-* ALSA ('arecord' is command used by 'startingscript.sh'
+* ALSA ('arecord' command is used by 'startingscript.sh')
 
 
 
