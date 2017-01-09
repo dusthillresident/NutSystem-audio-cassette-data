@@ -11,6 +11,13 @@ then
  exit
 fi
 sleep 0.05s
+
+if [[ -e "$2" ]]
+then
+ echo "File exists. Exiting"
+ exit
+fi
+
 echo "Starting"
 
 if [[ -e /tmp/readdata ]]
