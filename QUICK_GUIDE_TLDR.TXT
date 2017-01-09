@@ -31,4 +31,6 @@
 
 ==== SIGNED 16 BIT CONVERSION ====
 
-NutSystem prefers unsigned 8 bit raw PCM. But you can also use signed 16 bit raw PCM, but ONLY if you want to. To do this, edit the "signal_filter" program and change the variable converts16% to TRUE. Then if you want to use the StartingScripts to record directly from the tape, you'll need to edit them and change the arecord command. 
+NutSystem prefers unsigned 8 bit raw PCM. But you can also use signed 16 bit raw PCM, but ONLY if you want to. To do this,
+* edit the "signal_filter" program and change the variable converts16% to TRUE
+* Then if you want to use the StartingScripts to record directly from the tape, you'll need to edit them and change the arecord command. 
