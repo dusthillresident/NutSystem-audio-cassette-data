@@ -10,7 +10,6 @@ then
  echo "(or mono raw signed 16 bit PCM, if converts16% is set to TRUE in dec_win)"
  exit
 fi
-sleep 0.05s
 
 if [[ -e "$2" ]]
 then
@@ -18,6 +17,7 @@ then
  exit
 fi
 
+sleep 0.05s
 echo "Starting"
 
 if [[ -e /tmp/readdata ]]
