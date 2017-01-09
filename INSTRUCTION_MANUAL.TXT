@@ -36,7 +36,6 @@ I tried to make NutSystem as straightforward to use as possible, but you still n
  miscfiles		|	The enc_wo and dec_win programs' output files are put in here
  _encoder_output_files	|	The EncodingScript moves the output files from the 'enc_wo' program here and adds datestamps to the filenames
  _recovered_files       |	The StartingScript moves the output files from the 'dec_win' program here and adds datestamps to the filenames
- _waveinput_recordings  |	If dec_win's 'record%' variable is set to TRUE, the input data is logged to a file and is moved here. Helpful for diagnosing problems when using StartingScript
  
 
  == 3) ENCODING FILES ==
