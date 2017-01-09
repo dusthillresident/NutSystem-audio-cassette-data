@@ -17,18 +17,18 @@
 ==== QUICK GUIDE FOR DECODING ====
 
 * Record the signal back in from the cassette tape, or whatever
-* Make sure there's at least two seconds of tape noise/blank tape recording at the start of the recording, and no loud transients/clicks/pops, otherwise you will probably get 'start signal error'
+* Make sure there's a period of at least two seconds of tape noise/blank tape recording at the start of the recording, and no loud transients/clicks/pops in that period of noise, otherwise you will probably get 'start signal error'
 * Export as raw unsigned 8bit PCM 
 * Do this:
   ./DecodingScript.sh [path to input.raw] [path to output file]
-  Beware that the specified output file, if it exists, will be overwritten without asking. 
+  If the specified output file already exists, the script should immediately exit without doing anything, but I can't guarantee this and you should be careful and back up all your data before using NutSystem.
   
 ==== REQUIREMENTS ====
 
-* Brandy Basic V interpreter
-* X window system (unfortunately, Brandy requires X)
+* Brandy Basic V interpreter (NutSystem is written in BBC Basic)
+* X window system (Brandy requires it)
 * ALSA ('arecord' command is used by 'startingscript.sh')
 
+==== SIGNED 16 BIT CONVERSION ====
 
-
- 
+NutSystem prefers unsigned 8 bit raw PCM. But you can also use signed 16 bit raw PCM, but ONLY if you want to. To do this, edit the "signal_filter" program and change the variable converts16% to TRUE. Then if you want to use the StartingScripts to record directly from the tape, you'll need to edit them and change the arecord command. 
